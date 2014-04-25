@@ -14,6 +14,7 @@ class Driver
 	# load board state from DOM
 	def read_tiles
 
+		# initialize 4x4 array
 		board_matrix = []
 		(0..3).each do |x|
 			board_matrix[x] = []
@@ -22,6 +23,7 @@ class Driver
 			end
 		end
 
+		# tile classes are of the form "tile tile-{value} tile-{x}-{y} {tile-modifier}"
 		tiles = @selenium.find_elements(:class, "tile")
 		tiles.map do |tile|
 			
@@ -38,17 +40,19 @@ class Driver
 		return board_matrix
 	end
 
-	# "ground" method to send basic selenium commands to the driver
 	def send_keys(keys)
 		@container.send_keys(keys)
 	end
 
 end
 
+# returns symbol of proper keypress
 def find_optimal_move(board_state)
 
 	# check if match can be made down
 	width = board_state.length
+
+	# runs from bottom to top of columns to see if there's a match
 	(0..(width-1)).each do |x|
 		i = 1
 		point = nil
@@ -62,15 +66,20 @@ def find_optimal_move(board_state)
 		end
 	end
 
+	# keep it from getting stuck
 	return (if Random.rand > 0.5 then :arrow_right else :arrow_left end)
 
 end
 
+# initialize selenium
 driver = Driver.new "http://gabrielecirulli.github.io/2048/"
+#driver = Driver.new "http://doge2048.com"
 
 # 4x4 matrix to hold board state
 tile_matrix = driver.read_tiles
 
+# loop an artibrary number of times
+# will eventually go until it loses (or wins)
 150.times do
 	driver.send_keys(find_optimal_move(driver.read_tiles))
 	sleep(0.1)
