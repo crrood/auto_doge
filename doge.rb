@@ -1,4 +1,5 @@
 require "selenium-webdriver"
+require "ruby-prof"
 
 class Driver
 
@@ -11,20 +12,22 @@ class Driver
 		@container = @selenium.find_element(:class, "game-container")
 	end
 
+	# get list of elements of given class
+	def get_elements_by_class(class_name)
+		@selenium.find_elements(:class, class_name)
+	end
+
 	# load board state from DOM
 	def read_tiles
 
 		# initialize 4x4 array
-		board_matrix = []
-		(0..3).each do |x|
-			board_matrix[x] = []
-			(0..3).each do |y|
-				board_matrix[x][y] = 0
-			end
-		end
+		board_matrix = Array.new([[0, 0, 0, 0],
+						[0, 0, 0, 0],
+						[0, 0, 0, 0],
+						[0, 0, 0, 0]])
 
 		# tile classes are of the form "tile tile-{value} tile-{x}-{y} {tile-modifier}"
-		tiles = @selenium.find_elements(:class, "tile")
+		tiles = get_elements_by_class("tile")
 		tiles.map do |tile|
 			
 			# read position data from class labels
@@ -37,7 +40,7 @@ class Driver
 
 		end
 
-		return board_matrix
+		board_matrix
 	end
 
 	def send_keys(keys)
@@ -78,11 +81,28 @@ driver = Driver.new "http://gabrielecirulli.github.io/2048/"
 # 4x4 matrix to hold board state
 tile_matrix = driver.read_tiles
 
+RubyProf.start
+
 # loop an artibrary number of times
 # will eventually go until it loses (or wins)
 150.times do
+	# store board state
+	tile_list = driver.get_elements_by_class "tile"
+	
+	# move
 	driver.send_keys(find_optimal_move(driver.read_tiles))
-	sleep(0.1)
+
+	# only proceed once the DOM updates
+	# prevents crashes from accessing unavailable elements
+	i = 0
+	while (tile_list == driver.get_elements_by_class("tile") && i < 3)
+		i += 1
+	end
+	print i.to_s + " "
 end
+
+profile = RubyProf.stop
+printer = RubyProf::FlatPrinter.new(profile)
+printer.print(STDOUT)
 
 #driver.send_keys(:arrow_left)
